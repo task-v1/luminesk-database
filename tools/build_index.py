@@ -16,42 +16,29 @@ from luminesk_cli.domain.manifest import LocalFileOptions, Manifest, load_manife
 from luminesk_cli.infrastructure.template import read_template_tree
 
 REVISION_RE = re.compile(r"^[0-9a-f]{40}$")
-RESERVED_DIRECTORIES = frozenset(
-    {
-        ".ci",
-        ".git",
-        ".github",
-        ".mypy_cache",
-        ".pytest_cache",
-        ".ruff_cache",
-        ".venv",
-        "__pycache__",
-        "dist",
-        "schemas",
-        "tests",
-        "tools",
-    }
-)
 
 
 def discover_entries(root: Path) -> tuple[Path, ...]:
-    """Return canonical root-level recipe directories in stable order."""
+    """Return canonical ``database/<name>`` recipes in stable order."""
+
+    database = root / "database"
+
+    if not database.is_dir() or database.is_symlink():
+        raise ValidationError("repository has no safe database directory")
 
     entries: list[Path] = []
 
-    for child in sorted(root.iterdir(), key=lambda path: path.name):
-        if child.name.startswith(".") or child.name in RESERVED_DIRECTORIES:
+    for child in sorted(database.iterdir(), key=lambda path: path.name):
+        if child.name.startswith("."):
             continue
 
         if not child.is_dir():
-            continue
+            raise ValidationError(f"database entries must be directories: {child.name}")
 
         manifest_path = child / "luminesk.toml"
 
         if not manifest_path.is_file():
-            raise ValidationError(
-                f"root recipe directory has no luminesk.toml: {child.name}"
-            )
+            raise ValidationError(f"database recipe has no luminesk.toml: {child.name}")
 
         entries.append(child)
 
@@ -89,7 +76,7 @@ def entry_document(entry_root: Path, manifest: Manifest) -> dict[str, object]:
         "edition": package.edition,
         "summary": package.summary,
         "keywords": list(package.keywords),
-        "path": package.name,
+        "path": f"database/{package.name}",
         "manifestDigest": manifest.digest,
     }
 

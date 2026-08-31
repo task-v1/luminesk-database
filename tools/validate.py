@@ -132,13 +132,18 @@ def validate_version_bumps(root: Path, base_ref: str) -> None:
         relevant = [
             path
             for path in changed
-            if path.startswith(f"{name}/") and not path.casefold().endswith("readme.md")
+            if path.startswith(f"database/{name}/")
+            and not path.casefold().endswith("readme.md")
         ]
 
         if not relevant:
             continue
 
-        previous = _git_optional(root, "show", f"{base_ref}:{name}/luminesk.toml")
+        previous = _git_optional(
+            root,
+            "show",
+            f"{base_ref}:database/{name}/luminesk.toml",
+        )
 
         if previous is None:
             continue

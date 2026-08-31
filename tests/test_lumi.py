@@ -18,7 +18,7 @@ REVISION = "b" * 40
 
 
 def test_lumi_recipe_matches_runtime_contract(repository_root: Path) -> None:
-    manifest = load_manifest(repository_root / "lumi" / "luminesk.toml")
+    manifest = load_manifest(repository_root / "database" / "lumi" / "luminesk.toml")
 
     assert manifest.package.name == "lumi"
     assert manifest.package.display_name == "Lumi"
@@ -67,24 +67,24 @@ def test_catalog_client_acquires_exact_lumi_recipe(
     content = build_index(repository_root, REVISION)
     snapshot = parse_catalog_index(content)
     entry = snapshot.entries[0]
-    manifest = (repository_root / "lumi" / "luminesk.toml").read_bytes()
+    manifest = (repository_root / "database" / "lumi" / "luminesk.toml").read_bytes()
     template = (
-        repository_root / "lumi" / "template" / "settings.yml.tmpl"
+        repository_root / "database" / "lumi" / "template" / "settings.yml.tmpl"
     ).read_bytes()
 
     def handler(request: httpx.Request) -> httpx.Response:
         path = unquote(request.url.path)
 
-        if path.endswith(f"/{REVISION}/lumi/luminesk.toml"):
+        if path.endswith(f"/{REVISION}/database/lumi/luminesk.toml"):
             return httpx.Response(200, content=manifest)
 
-        if path.endswith("/contents/lumi/template"):
+        if path.endswith("/contents/database/lumi/template"):
             return httpx.Response(
                 200,
                 json=[
                     {
                         "type": "file",
-                        "path": "lumi/template/settings.yml.tmpl",
+                        "path": "database/lumi/template/settings.yml.tmpl",
                         "size": len(template),
                         "download_url": "https://download.example/settings.yml.tmpl",
                     }

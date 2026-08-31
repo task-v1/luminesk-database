@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/task-v1/luminesk-cli/2.0/schemas/luminesk-v1.schema.json",
+  "$id": "https://raw.githubusercontent.com/task-v1/luminesk-database/main/schemas/luminesk-v1.schema.json",
   "title": "Luminesk database recipe manifest v1",
   "type": "object",
   "additionalProperties": false,

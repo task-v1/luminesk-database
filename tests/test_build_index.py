@@ -23,6 +23,7 @@ def test_index_is_deterministic_and_describes_lumi(repository_root: Path) -> Non
     assert len(snapshot.entries) == 1
     entry = snapshot.entries[0]
     assert entry.name == "lumi"
+    assert entry.path == "database/lumi"
     assert entry.display_name == "Lumi"
     assert entry.edition == "bedrock"
     assert entry.template_digest is not None
@@ -44,8 +45,8 @@ def test_index_writer_emits_matching_checksum(
 
 
 def test_official_index_rejects_local_file_sources(tmp_path: Path) -> None:
-    recipe = tmp_path / "fixture"
-    recipe.mkdir()
+    recipe = tmp_path / "database" / "fixture"
+    recipe.mkdir(parents=True)
     (recipe / "server.bin").write_bytes(b"fixture")
     (recipe / "luminesk.toml").write_text(
         """\

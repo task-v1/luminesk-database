@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/task-v1/luminesk-cli/2.0/schemas/index-v1.schema.json",
+  "$id": "https://raw.githubusercontent.com/task-v1/luminesk-database/main/schemas/index-v1.schema.json",
   "title": "Luminesk database index v1",
   "type": "object",
   "additionalProperties": false,
@@ -25,6 +25,10 @@
     "identifier": {
       "type": "string",
       "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$"
+    },
+    "recipePath": {
+      "type": "string",
+      "pattern": "^database/[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$"
     },
     "semver": {
       "type": "string",
@@ -57,11 +61,11 @@
           "type": "array",
           "items": {"type": "string", "minLength": 1}
         },
-        "path": {"$ref": "#/$defs/identifier"},
+        "path": {"$ref": "#/$defs/recipePath"},
         "manifestDigest": {"$ref": "#/$defs/digest"},
         "templateDigest": {"$ref": "#/$defs/digest"}
       }
     }
   },
-  "$comment": "Entries must be sorted by name, normalized names must be unique, and each path must equal its name; the CLI enforces these semantic constraints."
+  "$comment": "Entries must be sorted by name, normalized names must be unique, and each path must equal database/<name>; the CLI enforces these semantic constraints."
 }
