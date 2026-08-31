@@ -46,9 +46,9 @@ def test_index_supports_multiple_cores_with_optional_templates(
 
     alpha = database / "alpha"
     alpha.mkdir()
-    manifest = (
-        repository_root / "database" / "lumi" / "luminesk.toml"
-    ).read_text(encoding="utf-8")
+    manifest = (repository_root / "database" / "lumi" / "luminesk.toml").read_text(
+        encoding="utf-8"
+    )
     manifest = manifest.replace('template = "template"\n', "", 1)
     manifest = manifest.replace('name = "lumi"', 'name = "alpha"', 1)
     manifest = manifest.replace('display_name = "Lumi"', 'display_name = "Alpha"', 1)
