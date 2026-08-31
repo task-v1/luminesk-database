@@ -1,3 +1,7 @@
+# This repository is not being distributed publicly until the release of version 2.0 of [Luminesk-CLI](https://github.com/task-v1/luminesk-cli)!
+
+___
+
 # Luminesk Database
 
 [![Validate database](https://github.com/task-v1/luminesk-database/actions/workflows/validate.yml/badge.svg)](https://github.com/task-v1/luminesk-database/actions/workflows/validate.yml)
