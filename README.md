@@ -81,7 +81,7 @@ in both workflow files; use that same revision when reproducing CI exactly.
 ```bash
 git -C ../luminesk-cli fetch origin 2.0
 git -C ../luminesk-cli worktree add --detach ../luminesk-cli-ci \
-  13d378f9f542b7d3ec138fd01291d06bc69153bc
+  dae4f7bf3f9d90e940d164a1a7825b81c4b32085
 
 uv sync --project ../luminesk-cli-ci --locked --extra dev --python 3.13
 

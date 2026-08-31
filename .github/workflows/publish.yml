@@ -34,7 +34,7 @@ jobs:
         with:
           repository: task-v1/luminesk-cli
           # Keep this immutable revision synchronized with validate.yml.
-          ref: "13d378f9f542b7d3ec138fd01291d06bc69153bc"
+          ref: "dae4f7bf3f9d90e940d164a1a7825b81c4b32085"
           path: .ci/luminesk-cli
           persist-credentials: false
 
