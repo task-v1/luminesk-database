@@ -1,0 +1,110 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from urllib.parse import unquote
+
+import httpx
+import pytest
+from luminesk_cli.cli.entry import main
+from luminesk_cli.domain.catalog import parse_catalog_index
+from luminesk_cli.domain.manifest import MavenOptions, load_manifest
+from luminesk_cli.infrastructure.catalog import CatalogClient, CatalogStore
+
+from tools.build_index import build_index
+from tools.validate import validate_repository
+
+REVISION = "b" * 40
+
+
+def test_lumi_recipe_matches_runtime_contract(repository_root: Path) -> None:
+    manifest = load_manifest(repository_root / "lumi" / "luminesk.toml")
+
+    assert manifest.package.name == "lumi"
+    assert manifest.package.display_name == "Lumi"
+    assert manifest.package.edition == "bedrock"
+    assert manifest.package.platforms == ("linux/amd64", "linux/arm64")
+    assert len(manifest.sources) == 1
+    source = manifest.sources[0]
+    assert source.type == "maven"
+    assert isinstance(source.options, MavenOptions)
+    assert source.options.repository == "https://repo.lumi.su/releases"
+    assert source.options.group == "com.koshakmine"
+    assert source.options.artifact == "Lumi"
+    assert source.options.version == "latest"
+    assert manifest.runtime.image.startswith("eclipse-temurin:21-jre@sha256:")
+    assert manifest.runtime.ports[0].protocol == "udp"
+    assert manifest.runtime.ports[0].container == 19132
+
+
+def test_repository_and_cli_search_info_work_together(
+    repository_root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert validate_repository(repository_root) == 1
+    content = build_index(repository_root, REVISION)
+    snapshot = parse_catalog_index(content)
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
+    store = CatalogStore(tmp_path / "cache" / "luminesk_cli" / "v2" / "catalog")
+    store.commit(snapshot, content)
+
+    assert main(["search", "lumi", "--edition", "bedrock", "--json"]) == 0
+    search = json.loads(capsys.readouterr().out)
+    assert [entry["name"] for entry in search["recipes"]] == ["lumi"]
+
+    assert main(["info", "lumi", "--json"]) == 0
+    info = json.loads(capsys.readouterr().out)
+    assert info["recipe"]["displayName"] == "Lumi"
+    assert info["recipe"]["recipeVersion"] == "1.0.0"
+
+
+def test_catalog_client_acquires_exact_lumi_recipe(
+    repository_root: Path,
+    tmp_path: Path,
+) -> None:
+    content = build_index(repository_root, REVISION)
+    snapshot = parse_catalog_index(content)
+    entry = snapshot.entries[0]
+    manifest = (repository_root / "lumi" / "luminesk.toml").read_bytes()
+    template = (
+        repository_root / "lumi" / "template" / "settings.yml.tmpl"
+    ).read_bytes()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = unquote(request.url.path)
+
+        if path.endswith(f"/{REVISION}/lumi/luminesk.toml"):
+            return httpx.Response(200, content=manifest)
+
+        if path.endswith("/contents/lumi/template"):
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "type": "file",
+                        "path": "lumi/template/settings.yml.tmpl",
+                        "size": len(template),
+                        "download_url": "https://download.example/settings.yml.tmpl",
+                    }
+                ],
+            )
+
+        if request.url.host == "download.example":
+            return httpx.Response(200, content=template)
+
+        raise AssertionError(f"unexpected catalog request: {request.url}")
+
+    store = CatalogStore(tmp_path / "catalog")
+    client = CatalogClient(
+        store,
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+        allow_private_network=True,
+    )
+    acquired = client.acquire_entry(snapshot, entry, tmp_path / "recipe")
+
+    assert acquired.manifest.package.name == "lumi"
+    assert acquired.origin.kind == "database"
+    assert acquired.origin.revision == REVISION
+    assert (acquired.root / "template" / "settings.yml.tmpl").read_bytes() == template

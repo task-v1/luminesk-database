@@ -1,0 +1,19 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["luminesk_cli.*"]
+ignore_errors = true
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+ignore = ["E501"]

@@ -1,0 +1,82 @@
+name: Validate database
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: database-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+
+jobs:
+  validate:
+    name: Recipes, catalog, and CLI compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out database
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out Luminesk CLI 2.0
+        uses: actions/checkout@v7
+        with:
+          repository: task-v1/luminesk-cli
+          ref: "2.0"
+          path: .ci/luminesk-cli
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+          cache-dependency-glob: .ci/luminesk-cli/uv.lock
+
+      - name: Install locked CLI development environment
+        run: uv sync --project .ci/luminesk-cli --locked --extra dev
+
+      - name: Validate recipes and published artifacts
+        run: >-
+          .ci/luminesk-cli/.venv/bin/python -m tools.validate
+          --check-dist
+
+      - name: Require recipe version bumps
+        if: github.event_name == 'pull_request'
+        run: >-
+          .ci/luminesk-cli/.venv/bin/python -m tools.validate
+          --base-ref "${{ github.event.pull_request.base.sha }}"
+
+      - name: Verify deterministic catalog generation
+        run: |
+          .ci/luminesk-cli/.venv/bin/python -m tools.build_index --revision "${GITHUB_SHA}" --output /tmp/catalog-a
+          .ci/luminesk-cli/.venv/bin/python -m tools.build_index --revision "${GITHUB_SHA}" --output /tmp/catalog-b
+          cmp /tmp/catalog-a/index-v1.json /tmp/catalog-b/index-v1.json
+          cmp /tmp/catalog-a/index-v1.json.sha256 /tmp/catalog-b/index-v1.json.sha256
+
+      - name: Lint and format check
+        run: |
+          .ci/luminesk-cli/.venv/bin/python -m ruff check tools tests
+          .ci/luminesk-cli/.venv/bin/python -m ruff format --check tools tests
+
+      - name: Type check
+        env:
+          MYPYPATH: .ci/luminesk-cli
+        run: .ci/luminesk-cli/.venv/bin/python -m mypy tools tests
+
+      - name: Run database compatibility tests
+        run: .ci/luminesk-cli/.venv/bin/python -m pytest

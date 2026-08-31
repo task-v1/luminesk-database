@@ -1,0 +1,94 @@
+manifest_version = 1
+template = "template"
+
+[package]
+name = "lumi"
+version = "1.0.0"
+display_name = "Lumi"
+kind = "core"
+game = "minecraft"
+edition = "bedrock"
+summary = "Lumi Minecraft Bedrock server"
+keywords = ["lumi", "bedrock", "nukkit"]
+license = "LGPL-3.0-only"
+authors = ["KoshakMineDEV"]
+platforms = ["linux/amd64", "linux/arm64"]
+
+[package.repository]
+url = "https://github.com/KoshakMineDEV/Lumi"
+
+[inputs.server_name]
+type = "string"
+default = "Lumi Server"
+pattern = '''^[^\r\n"\\]{1,64}$'''
+prompt = "Server name"
+
+[inputs.memory]
+type = "string"
+default = "2g"
+pattern = "^[1-9][0-9]*[mMgG]$"
+prompt = "Memory limit"
+
+[[sources]]
+id = "core"
+type = "maven"
+target = "server.jar"
+max_size = 268435456
+
+[sources.options]
+repository = "https://repo.lumi.su/releases"
+group = "com.koshakmine"
+artifact = "Lumi"
+version = "latest"
+extension = "jar"
+channel = "stable"
+
+[runtime]
+image = "eclipse-temurin:21-jre@sha256:7a65df4b22d2de92d4e04056e884f3b9122d70b21e2847fd66084278bd0ce037"
+command = ["java", "-Xms${input.memory}", "-Xmx${input.memory}", "-jar", "server.jar"]
+memory = "${input.memory}"
+stop_signal = "SIGINT"
+stop_timeout = 30
+restart = "on-failure"
+restart_limit = 3
+read_only_root = true
+
+[[runtime.mounts]]
+source = "."
+target = "/server"
+mode = "rw"
+
+[[runtime.mounts]]
+source = ".tmp"
+target = "/tmp"
+mode = "rw"
+
+[[runtime.ports]]
+name = "game"
+host = 19132
+container = 19132
+protocol = "udp"
+
+[[checks]]
+id = "core-present"
+phase = "post-build"
+kind = "file"
+path = "server.jar"
+
+[[checks]]
+id = "ready"
+phase = "readiness"
+kind = "log-regex"
+pattern = "Done .* For help, type"
+timeout = 180
+
+[ownership]
+preserve = ["settings.yml"]
+data = [
+  ".tmp",
+  "behavior_packs",
+  "players",
+  "plugins",
+  "resource_packs",
+  "worlds",
+]
