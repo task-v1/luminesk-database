@@ -118,6 +118,13 @@ Both workflows use the same immutable Luminesk CLI revision. Updating the CLI
 compatibility baseline is a deliberate change: update the two pinned revisions
 together and run the full suite before merging.
 
+The catalog revision identifies the complete published snapshot, but update
+decisions are entry-local. The CLI compares the installed recipe's name, path,
+version, manifest digest, and optional template digest with that entry in the
+current index. Publishing or changing one core therefore does not make another
+core outdated. If an entry itself changes, the CLI fetches that entry from the
+new catalog revision.
+
 ## License
 
 GPL-3.0. See [LICENSE](LICENSE).
