@@ -28,11 +28,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Check out Luminesk CLI 2.0
+      - name: Check out tested Luminesk CLI
         uses: actions/checkout@v7
         with:
           repository: task-v1/luminesk-cli
-          ref: "2.0"
+          # Keep this immutable revision synchronized with publish.yml.
+          ref: "13d378f9f542b7d3ec138fd01291d06bc69153bc"
           path: .ci/luminesk-cli
           persist-credentials: false
 
@@ -47,7 +48,7 @@ jobs:
           enable-cache: true
           cache-dependency-glob: .ci/luminesk-cli/uv.lock
 
-      - name: Install locked CLI development environment
+      - name: Install tested CLI development environment
         run: uv sync --project .ci/luminesk-cli --locked --extra dev
 
       - name: Validate recipes and published artifacts
