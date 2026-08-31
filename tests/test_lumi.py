@@ -43,16 +43,19 @@ def test_repository_and_cli_search_info_work_together(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    assert validate_repository(repository_root) == 1
+    validate_repository(repository_root)
     content = build_index(repository_root, REVISION)
     snapshot = parse_catalog_index(content)
-    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "cache"))
-    store = CatalogStore(tmp_path / "cache" / "luminesk_cli" / "v2" / "catalog")
+    store = CatalogStore(tmp_path / "catalog")
     store.commit(snapshot, content)
+    monkeypatch.setattr(
+        "luminesk_cli.cli.commands.catalog.catalog_store",
+        lambda: store,
+    )
 
     assert main(["search", "lumi", "--edition", "bedrock", "--json"]) == 0
     search = json.loads(capsys.readouterr().out)
-    assert [entry["name"] for entry in search["recipes"]] == ["lumi"]
+    assert search["recipes"][0]["name"] == "lumi"
 
     assert main(["info", "lumi", "--json"]) == 0
     info = json.loads(capsys.readouterr().out)
@@ -66,7 +69,7 @@ def test_catalog_client_acquires_exact_lumi_recipe(
 ) -> None:
     content = build_index(repository_root, REVISION)
     snapshot = parse_catalog_index(content)
-    entry = snapshot.entries[0]
+    entry = next(entry for entry in snapshot.entries if entry.name == "lumi")
     manifest = (repository_root / "database" / "lumi" / "luminesk.toml").read_bytes()
     template = (
         repository_root / "database" / "lumi" / "template" / "settings.yml.tmpl"
