@@ -23,7 +23,15 @@ BINARY_SUFFIXES = frozenset(
 )
 SECRET_NAMES = frozenset({".env", "id_dsa", "id_ecdsa", "id_ed25519", "id_rsa"})
 SECRET_SUFFIXES = frozenset({".key", ".p12", ".pem", ".pfx"})
-PRIVATE_KEY_MARKER = b"-----BEGIN PRIVATE KEY-----"
+PRIVATE_KEY_MARKERS = (
+    b"-----BEGIN PRIVATE KEY-----",
+    b"-----BEGIN ENCRYPTED PRIVATE KEY-----",
+    b"-----BEGIN RSA PRIVATE KEY-----",
+    b"-----BEGIN DSA PRIVATE KEY-----",
+    b"-----BEGIN EC PRIVATE KEY-----",
+    b"-----BEGIN OPENSSH PRIVATE KEY-----",
+    b"-----BEGIN PGP PRIVATE KEY BLOCK-----",
+)
 
 
 def validate_repository(root: Path, *, check_dist: bool = False) -> int:
@@ -78,7 +86,8 @@ def _validate_tree(root: Path) -> None:
         if total_size > MAX_RECIPE_SIZE:
             raise SecurityError("recipe exceeds total size limit", path=root.name)
 
-        if PRIVATE_KEY_MARKER in path.read_bytes():
+        content = path.read_bytes()
+        if any(marker in content for marker in PRIVATE_KEY_MARKERS):
             raise SecurityError("private key material is forbidden", path=relative)
 
 
