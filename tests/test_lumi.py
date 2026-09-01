@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gzip
 import json
 from pathlib import Path
 from urllib.parse import unquote
@@ -15,6 +16,18 @@ from tools.build_index import build_index
 from tools.validate import validate_repository
 
 REVISION = "b" * 40
+
+
+def _gzip_response(content: bytes) -> httpx.Response:
+    compressed = gzip.compress(content, mtime=0)
+    return httpx.Response(
+        200,
+        content=compressed,
+        headers={
+            "Content-Encoding": "gzip",
+            "Content-Length": str(len(compressed)),
+        },
+    )
 
 
 def test_lumi_recipe_matches_runtime_contract(repository_root: Path) -> None:
@@ -79,7 +92,7 @@ def test_catalog_client_acquires_exact_lumi_recipe(
         path = unquote(request.url.path)
 
         if path.endswith(f"/{REVISION}/database/lumi/luminesk.toml"):
-            return httpx.Response(200, content=manifest)
+            return _gzip_response(manifest)
 
         if path.endswith("/contents/database/lumi/template"):
             return httpx.Response(
@@ -95,7 +108,7 @@ def test_catalog_client_acquires_exact_lumi_recipe(
             )
 
         if request.url.host == "download.example":
-            return httpx.Response(200, content=template)
+            return _gzip_response(template)
 
         raise AssertionError(f"unexpected catalog request: {request.url}")
 
