@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from luminesk_cli.domain.manifest import SOURCE_TYPES
+
+WORKFLOW_USE_RE = re.compile(r"^\s*uses:\s*(?P<action>[^\s#]+)", re.MULTILINE)
+COMMIT_SHA_RE = re.compile(r"[0-9a-f]{40}")
+CLI_REVISION_RE = re.compile(r'^\s*CLI_REVISION: "([0-9a-f]{40})"$', re.MULTILINE)
 
 
 def _schema(repository_root: Path, name: str) -> dict[str, object]:
@@ -64,3 +69,24 @@ def test_index_schema_requires_database_recipe_paths(
     properties = entry["properties"]
     assert isinstance(properties, dict)
     assert properties["path"] == {"$ref": "#/$defs/recipePath"}
+
+
+def test_workflows_pin_external_actions_and_the_same_cli_revision(
+    repository_root: Path,
+) -> None:
+    revisions = set()
+
+    for path in (repository_root / ".github" / "workflows").glob("*.yml"):
+        content = path.read_text(encoding="utf-8")
+        revisions.update(CLI_REVISION_RE.findall(content))
+
+        for match in WORKFLOW_USE_RE.finditer(content):
+            action = match.group("action")
+            if action.startswith("./"):
+                continue
+            _, separator, revision = action.rpartition("@")
+            assert separator and COMMIT_SHA_RE.fullmatch(revision), (
+                f"{path.name} has a mutable action: {action}"
+            )
+
+    assert revisions == {"c7f3ee85162dff225bdd17b76a4d784da7940341"}

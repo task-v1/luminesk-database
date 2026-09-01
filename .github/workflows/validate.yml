@@ -15,35 +15,126 @@ permissions:
 
 env:
   PYTHONUTF8: "1"
+  CLI_REVISION: "c7f3ee85162dff225bdd17b76a4d784da7940341"
 
 jobs:
-  validate:
+  changes:
+    name: Detect relevant changes
+    runs-on: ubuntu-latest
+    outputs:
+      database: ${{ steps.paths.outputs.database }}
+      tooling: ${{ steps.paths.outputs.tooling }}
+    steps:
+      - name: Check out database history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Detect database and tooling paths
+        id: paths
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          database=false
+          tooling=false
+          zero=0000000000000000000000000000000000000000
+
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            database=true
+            tooling=true
+          elif [[ -z "${BASE_SHA}" || "${BASE_SHA}" == "${zero}" ]] || \
+               ! git cat-file -e "${BASE_SHA}^{commit}"; then
+            database=true
+            tooling=true
+          else
+            git diff --quiet "${BASE_SHA}" "${GITHUB_SHA}" -- database || database=true
+            git diff --quiet "${BASE_SHA}" "${GITHUB_SHA}" -- \
+              tools tests schemas pyproject.toml .github/workflows || tooling=true
+          fi
+
+          echo "database=${database}" >> "${GITHUB_OUTPUT}"
+          echo "tooling=${tooling}" >> "${GITHUB_OUTPUT}"
+
+  tooling:
+    name: Tooling and schema quality
+    needs: changes
+    if: needs.changes.outputs.tooling == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out database
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Check out tested Luminesk CLI
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: task-v1/luminesk-cli
+          ref: ${{ env.CLI_REVISION }}
+          path: .ci/luminesk-cli
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.13"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+          cache-dependency-glob: .ci/luminesk-cli/uv.lock
+
+      - name: Install tested CLI development environment
+        run: uv sync --project .ci/luminesk-cli --locked --extra dev
+
+      - name: Lint and format check
+        run: |
+          .ci/luminesk-cli/.venv/bin/python -m ruff check tools tests
+          .ci/luminesk-cli/.venv/bin/python -m ruff format --check tools tests
+
+      - name: Type check
+        env:
+          MYPYPATH: .ci/luminesk-cli
+        run: .ci/luminesk-cli/.venv/bin/python -m mypy tools tests
+
+      - name: Run tooling tests with branch coverage
+        run: >-
+          .ci/luminesk-cli/.venv/bin/python -m pytest
+          --cov=tools --cov-branch --cov-fail-under=85
+
+  catalog:
     name: Recipes, catalog, and CLI compatibility
+    needs: changes
+    if: needs.changes.outputs.database == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Check out database
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Check out tested Luminesk CLI
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: task-v1/luminesk-cli
-          # Keep this immutable revision synchronized with publish.yml.
-          ref: "dae4f7bf3f9d90e940d164a1a7825b81c4b32085"
+          ref: ${{ env.CLI_REVISION }}
           path: .ci/luminesk-cli
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.13"
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           enable-cache: true
           cache-dependency-glob: .ci/luminesk-cli/uv.lock
@@ -69,15 +160,18 @@ jobs:
           cmp /tmp/catalog-a/index-v1.json /tmp/catalog-b/index-v1.json
           cmp /tmp/catalog-a/index-v1.json.sha256 /tmp/catalog-b/index-v1.json.sha256
 
-      - name: Lint and format check
-        run: |
-          .ci/luminesk-cli/.venv/bin/python -m ruff check tools tests
-          .ci/luminesk-cli/.venv/bin/python -m ruff format --check tools tests
-
-      - name: Type check
-        env:
-          MYPYPATH: .ci/luminesk-cli
-        run: .ci/luminesk-cli/.venv/bin/python -m mypy tools tests
-
       - name: Run database compatibility tests
         run: .ci/luminesk-cli/.venv/bin/python -m pytest
+
+  required:
+    name: Database required gate
+    if: always()
+    needs: [changes, tooling, catalog]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require relevant jobs to pass or skip
+        shell: bash
+        run: |
+          test "${{ needs.changes.result }}" = "success"
+          test "${{ needs.tooling.result }}" = "success" || test "${{ needs.tooling.result }}" = "skipped"
+          test "${{ needs.catalog.result }}" = "success" || test "${{ needs.catalog.result }}" = "skipped"

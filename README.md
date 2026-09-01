@@ -1,7 +1,3 @@
-# This repository is not being distributed publicly until the release of version 2.0 of [Luminesk-CLI](https://github.com/task-v1/luminesk-cli)!
-
-___
-
 # Luminesk Database
 
 [![Validate database](https://github.com/task-v1/luminesk-database/actions/workflows/validate.yml/badge.svg)](https://github.com/task-v1/luminesk-database/actions/workflows/validate.yml)
@@ -85,7 +81,7 @@ in both workflow files; use that same revision when reproducing CI exactly.
 ```bash
 git -C ../luminesk-cli fetch origin 2.0
 git -C ../luminesk-cli worktree add --detach ../luminesk-cli-ci \
-  dae4f7bf3f9d90e940d164a1a7825b81c4b32085
+  c7f3ee85162dff225bdd17b76a4d784da7940341
 
 uv sync --project ../luminesk-cli-ci --locked --extra dev --python 3.13
 
@@ -108,15 +104,18 @@ index for unmerged recipe changes.
 
 ## CI and publication
 
-`Validate database` runs for every pull request and push to `main`. It checks
-all recipes, the existing published artifacts, version bumps, deterministic
-catalog generation, formatting, types, and the compatibility test suite.
+`Validate database` detects changed paths on every pull request and push to
+`main`. Changes under `database/` run the complete recipe, catalog, version,
+determinism, and CLI compatibility gate. Changes limited to tools, tests,
+schemas, or workflows run their focused quality gate. Other changes finish
+with a successful skip; a manual dispatch forces both gates.
 
-`Publish catalog index` runs only for content pushes to `main`. It repeats
-source validation and compatibility tests, builds `dist/index-v1.json` for the
-exact content commit, validates the generated index and checksum, and pushes a
-`chore(catalog): ...` commit as `github-actions[bot]`. That commit is excluded
-from another publication pass.
+`Publish catalog index` builds only when `database/` changed (or when manually
+dispatched). Validation and generation run with read-only repository access.
+A separate minimal job receives write access only after the generated artifact
+has passed all checks, verifies its checksum and unchanged `main` tip, then
+pushes a `chore(catalog): ...` commit as `github-actions[bot]`. The resulting
+dist-only commit is skipped automatically.
 
 Both workflows use the same immutable Luminesk CLI revision. Updating the CLI
 compatibility baseline is a deliberate change: update the two pinned revisions

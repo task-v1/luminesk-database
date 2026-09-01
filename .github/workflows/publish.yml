@@ -10,41 +10,74 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   PYTHONUTF8: "1"
+  CLI_REVISION: "c7f3ee85162dff225bdd17b76a4d784da7940341"
 
 jobs:
-  publish:
+  changes:
+    name: Detect recipe changes
+    runs-on: ubuntu-latest
+    outputs:
+      database: ${{ steps.paths.outputs.database }}
+    steps:
+      - name: Check out database history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Detect database paths
+        id: paths
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.before }}
+        run: |
+          database=false
+          zero=0000000000000000000000000000000000000000
+
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            database=true
+          elif [[ -z "${BASE_SHA}" || "${BASE_SHA}" == "${zero}" ]] || \
+               ! git cat-file -e "${BASE_SHA}^{commit}"; then
+            database=true
+          else
+            git diff --quiet "${BASE_SHA}" "${GITHUB_SHA}" -- database || database=true
+          fi
+
+          echo "database=${database}" >> "${GITHUB_OUTPUT}"
+
+  build:
     name: Build immutable catalog snapshot
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      !startsWith(github.event.head_commit.message, 'chore(catalog): publish index')
+    needs: changes
+    if: needs.changes.outputs.database == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - name: Check out database content commit
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Check out tested Luminesk CLI
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: task-v1/luminesk-cli
-          # Keep this immutable revision synchronized with validate.yml.
-          ref: "dae4f7bf3f9d90e940d164a1a7825b81c4b32085"
+          ref: ${{ env.CLI_REVISION }}
           path: .ci/luminesk-cli
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.13"
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           enable-cache: true
           cache-dependency-glob: .ci/luminesk-cli/uv.lock
@@ -68,8 +101,42 @@ jobs:
           .ci/luminesk-cli/.venv/bin/python -m tools.validate
           --check-dist
 
-      - name: Commit published index
+      - name: Upload generated catalog
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: catalog-${{ github.sha }}
+          path: |
+            dist/index-v1.json
+            dist/index-v1.json.sha256
+          if-no-files-found: error
+          retention-days: 1
+
+  commit:
+    name: Commit generated catalog only
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Check out exact content commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+
+      - name: Download generated catalog
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: catalog-${{ github.sha }}
+          path: dist
+
+      - name: Verify and commit generated files
+        shell: bash
         run: |
+          (cd dist && sha256sum --check index-v1.json.sha256)
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "${GITHUB_SHA}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add dist/index-v1.json dist/index-v1.json.sha256
