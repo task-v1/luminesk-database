@@ -76,9 +76,18 @@ def entry_document(entry_root: Path, manifest: Manifest) -> dict[str, object]:
         "edition": package.edition,
         "summary": package.summary,
         "keywords": list(package.keywords),
+        "authors": list(package.authors),
+        "platforms": list(package.platforms),
+        "sourceTypes": sorted({source.type for source in manifest.sources}),
+        "runtimeImage": manifest.runtime.image,
         "path": f"database/{package.name}",
         "manifestDigest": manifest.digest,
     }
+
+    if package.license is not None:
+        document["license"] = package.license
+    if package.repository is not None:
+        document["repository"] = package.repository.url
 
     if template is not None:
         document["templateDigest"] = template.digest
