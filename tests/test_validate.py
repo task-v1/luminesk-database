@@ -138,7 +138,7 @@ def test_version_bump_validation_uses_semver_ordering(
 
     manifest_path = tmp_path / "database" / "lumi" / "luminesk.toml"
     manifest_path.write_text(
-        current.replace('version = "1.0.1"', 'version = "1.0.2"', 1),
+        current.replace('version = "1.0.2"', 'version = "1.0.3"', 1),
         encoding="utf-8",
     )
     validate.validate_version_bumps(tmp_path, "base")

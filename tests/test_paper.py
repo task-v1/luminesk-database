@@ -20,7 +20,7 @@ def test_paper_recipe_matches_runtime_contract(repository_root: Path) -> None:
     assert source.options.minecraft == "1.21.11"
     assert source.options.build == "latest"
     assert manifest.runtime.image.startswith("eclipse-temurin:21-jre@sha256:")
-    assert manifest.runtime.run_as == "1000:1000"
+    assert manifest.runtime.run_as == "${input.runtime_uid}:${input.runtime_gid}"
     assert manifest.runtime.ports[0].protocol == "tcp"
     assert manifest.runtime.ports[0].container == 25565
     assert manifest.ownership.preserve == ("eula.txt", "server.properties")

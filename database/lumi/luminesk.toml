@@ -3,7 +3,7 @@ template = "template"
 
 [package]
 name = "lumi"
-version = "1.0.1"
+version = "1.0.2"
 display_name = "Lumi"
 kind = "core"
 game = "minecraft"
@@ -29,6 +29,20 @@ default = "2g"
 pattern = "^[1-9][0-9]*[mMgG]$"
 prompt = "Memory limit"
 
+[inputs.runtime_uid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host user ID for server files"
+
+[inputs.runtime_gid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host group ID for server files"
+
 [[sources]]
 id = "core"
 type = "maven"
@@ -51,7 +65,7 @@ stop_signal = "SIGINT"
 stop_timeout = 30
 restart = "on-failure"
 restart_limit = 3
-run_as = "1000:1000"
+run_as = "${input.runtime_uid}:${input.runtime_gid}"
 read_only_root = true
 
 [[runtime.mounts]]
