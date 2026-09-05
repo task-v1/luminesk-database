@@ -14,7 +14,7 @@ permissions:
 
 env:
   PYTHONUTF8: "1"
-  CLI_REVISION: "e1465ec1b09c3b39da876722aee8f80b2f73a50b"
+  CLI_REVISION: "d8a7787207b5b3f4ac56a2b9a8b09c2901a66aba"
 
 jobs:
   changes:
