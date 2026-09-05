@@ -46,6 +46,7 @@ def test_lumi_recipe_matches_runtime_contract(repository_root: Path) -> None:
     assert source.options.artifact == "Lumi"
     assert source.options.version == "latest"
     assert manifest.runtime.image.startswith("eclipse-temurin:21-jre@sha256:")
+    assert manifest.runtime.run_as == "1000:1000"
     assert manifest.runtime.ports[0].protocol == "udp"
     assert manifest.runtime.ports[0].container == 19132
 
@@ -73,7 +74,8 @@ def test_repository_and_cli_search_info_work_together(
     assert main(["info", "lumi", "--json"]) == 0
     info = json.loads(capsys.readouterr().out)
     assert info["recipe"]["displayName"] == "Lumi"
-    assert info["recipe"]["recipeVersion"] == "1.0.0"
+    assert info["recipe"]["recipeVersion"] == "1.0.1"
+    assert info["recipe"]["license"] == "LGPL-3.0-only"
 
 
 def test_catalog_client_acquires_exact_lumi_recipe(

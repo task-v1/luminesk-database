@@ -3,7 +3,7 @@ template = "template"
 
 [package]
 name = "lumi"
-version = "1.0.0"
+version = "1.0.1"
 display_name = "Lumi"
 kind = "core"
 game = "minecraft"
@@ -51,6 +51,7 @@ stop_signal = "SIGINT"
 stop_timeout = 30
 restart = "on-failure"
 restart_limit = 3
+run_as = "1000:1000"
 read_only_root = true
 
 [[runtime.mounts]]
