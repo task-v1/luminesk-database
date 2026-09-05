@@ -39,6 +39,8 @@ def test_index_is_deterministic_and_describes_lumi_by_name(
     assert entry.path == "database/lumi"
     assert entry.display_name == "Lumi"
     assert entry.edition == "bedrock"
+    assert entry.license == "LGPL-3.0-only"
+    assert entry.source_types == ("maven",)
     assert entry.template_digest is not None
 
 
@@ -202,7 +204,7 @@ def test_build_index_main_writes_and_checks_output(
         )
         == 0
     )
-    assert "Built 1 catalog entries" in capsys.readouterr().out
+    assert "Built 2 catalog entries" in capsys.readouterr().out
 
     assert (
         build_index_module.main(
@@ -218,4 +220,4 @@ def test_build_index_main_writes_and_checks_output(
         )
         == 0
     )
-    assert "Verified 1 catalog entries" in capsys.readouterr().out
+    assert "Verified 2 catalog entries" in capsys.readouterr().out

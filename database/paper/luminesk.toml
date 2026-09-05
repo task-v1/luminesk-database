@@ -1,0 +1,121 @@
+manifest_version = 1
+template = "template"
+
+[package]
+name = "paper"
+version = "1.0.0"
+display_name = "PaperMC"
+kind = "core"
+game = "minecraft"
+edition = "java"
+summary = "High-performance PaperMC server for Minecraft Java Edition"
+keywords = ["paper", "papermc", "java", "plugins", "bukkit", "spigot"]
+license = "GPL-3.0-only"
+authors = ["PaperMC Team"]
+platforms = ["linux/amd64", "linux/arm64"]
+
+[package.repository]
+url = "https://github.com/PaperMC/Paper"
+
+[inputs.server_name]
+type = "string"
+default = "PaperMC Server"
+pattern = '''^[^\r\n=]{1,64}$'''
+prompt = "Server name"
+
+[inputs.eula]
+type = "boolean"
+required = true
+prompt = "Accept the Minecraft EULA"
+
+[inputs.memory]
+type = "string"
+default = "4g"
+pattern = "^[1-9][0-9]*[mMgG]$"
+prompt = "Memory limit"
+
+[[sources]]
+id = "core"
+type = "paper"
+target = "server.jar"
+max_size = 268435456
+
+[sources.options]
+minecraft = "1.21.11"
+build = "latest"
+
+[runtime]
+image = "eclipse-temurin:21-jre@sha256:7a65df4b22d2de92d4e04056e884f3b9122d70b21e2847fd66084278bd0ce037"
+command = ["java", "-Xms${input.memory}", "-Xmx${input.memory}", "-jar", "server.jar", "nogui"]
+memory = "${input.memory}"
+stop_signal = "SIGINT"
+stop_timeout = 30
+restart = "on-failure"
+restart_limit = 3
+run_as = "1000:1000"
+read_only_root = true
+
+[[runtime.mounts]]
+source = "."
+target = "/server"
+mode = "rw"
+
+[[runtime.mounts]]
+source = ".tmp"
+target = "/tmp"
+mode = "rw"
+
+[[runtime.ports]]
+name = "game"
+host = 25565
+container = 25565
+protocol = "tcp"
+
+[[checks]]
+id = "core-present"
+phase = "post-build"
+kind = "file"
+path = "server.jar"
+
+[[checks]]
+id = "ready"
+phase = "readiness"
+kind = "log-regex"
+pattern = "Done .* For help, type"
+timeout = 240
+
+[ownership]
+preserve = ["eula.txt", "server.properties"]
+data = [
+  ".tmp",
+  "banned-ips.json",
+  "banned-players.json",
+  "cache",
+  "config",
+  "libraries",
+  "logs",
+  "ops.json",
+  "plugins",
+  "usercache.json",
+  "versions",
+  "whitelist.json",
+  "world",
+  "world_nether",
+  "world_the_end",
+]
+
+[update]
+backup = [
+  "banned-ips.json",
+  "banned-players.json",
+  "config",
+  "ops.json",
+  "plugins",
+  "server.properties",
+  "whitelist.json",
+  "world",
+  "world_nether",
+  "world_the_end",
+]
+retain_backups = 3
+rollback_on_failure = true
