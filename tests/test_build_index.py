@@ -191,6 +191,7 @@ def test_build_index_main_writes_and_checks_output(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    entry_count = len(discover_entries(repository_root))
     assert (
         build_index_module.main(
             [
@@ -204,7 +205,7 @@ def test_build_index_main_writes_and_checks_output(
         )
         == 0
     )
-    assert "Built 2 catalog entries" in capsys.readouterr().out
+    assert f"Built {entry_count} catalog entries" in capsys.readouterr().out
 
     assert (
         build_index_module.main(
@@ -220,4 +221,4 @@ def test_build_index_main_writes_and_checks_output(
         )
         == 0
     )
-    assert "Verified 2 catalog entries" in capsys.readouterr().out
+    assert f"Verified {entry_count} catalog entries" in capsys.readouterr().out

@@ -1,0 +1,121 @@
+manifest_version = 1
+
+[package]
+name = "allay"
+version = "1.0.0"
+display_name = "Allay"
+kind = "core"
+game = "minecraft"
+edition = "bedrock"
+summary = "Next-generation Allay server for Minecraft Bedrock Edition"
+keywords = ["allay", "bedrock", "java", "plugins"]
+license = "LGPL-3.0-only"
+authors = ["AllayMC"]
+platforms = ["linux/amd64", "linux/arm64"]
+
+[package.repository]
+url = "https://github.com/AllayMC/Allay"
+
+[inputs.memory]
+type = "string"
+default = "2g"
+pattern = "^[1-9][0-9]*[mMgG]$"
+prompt = "Memory limit"
+
+[inputs.runtime_uid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host user ID for server files"
+
+[inputs.runtime_gid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host group ID for server files"
+
+[[sources]]
+id = "core"
+type = "github-release"
+target = "server.jar"
+max_size = 268435456
+
+[sources.options]
+repository = "AllayMC/Allay"
+version = "latest"
+channel = "stable"
+asset = "allay-server-*-shaded.jar"
+
+[runtime]
+image = "eclipse-temurin:21-jre@sha256:7a65df4b22d2de92d4e04056e884f3b9122d70b21e2847fd66084278bd0ce037"
+command = ["java", "-Xms${input.memory}", "-Xmx${input.memory}", "-jar", "server.jar"]
+memory = "${input.memory}"
+stop_signal = "SIGINT"
+stop_timeout = 30
+restart = "on-failure"
+restart_limit = 3
+run_as = "${input.runtime_uid}:${input.runtime_gid}"
+read_only_root = true
+
+[[runtime.mounts]]
+source = "."
+target = "/server"
+mode = "rw"
+
+[[runtime.mounts]]
+source = ".tmp"
+target = "/tmp"
+mode = "rw"
+
+[[runtime.ports]]
+name = "game"
+host = 19132
+container = 19132
+protocol = "udp"
+
+[[runtime.ports]]
+name = "game-ipv6"
+host = 19133
+container = 19133
+protocol = "udp"
+
+[[checks]]
+id = "core-present"
+phase = "post-build"
+kind = "file"
+path = "server.jar"
+
+[[checks]]
+id = "ready"
+phase = "readiness"
+kind = "log-regex"
+pattern = "Network interface started at"
+timeout = 180
+
+[ownership]
+preserve = ["server-settings.yml"]
+data = [
+  ".tmp",
+  "command_data",
+  "extensions",
+  "logs",
+  "players",
+  "plugins",
+  "resource_packs",
+  "worlds",
+]
+
+[update]
+backup = [
+  "command_data",
+  "extensions",
+  "players",
+  "plugins",
+  "resource_packs",
+  "server-settings.yml",
+  "worlds",
+]
+retain_backups = 3
+rollback_on_failure = true

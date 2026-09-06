@@ -1,0 +1,149 @@
+manifest_version = 1
+
+[package]
+name = "powernukkitx"
+version = "1.0.0"
+display_name = "PowerNukkitX"
+kind = "core"
+game = "minecraft"
+edition = "bedrock"
+summary = "Feature-rich PowerNukkitX server for Minecraft Bedrock Edition"
+keywords = ["powernukkitx", "nukkit", "bedrock", "java", "plugins"]
+license = "LGPL-3.0-only"
+authors = ["PowerNukkitX Team"]
+platforms = ["linux/amd64", "linux/arm64"]
+
+[package.repository]
+url = "https://github.com/PowerNukkitX/PowerNukkitX"
+
+[inputs.server_name]
+type = "string"
+default = "PowerNukkitX Server"
+pattern = '''^[^\r\n]{1,64}$'''
+prompt = "Server name"
+
+[inputs.accept_license]
+type = "boolean"
+required = true
+prompt = "Accept the PowerNukkitX license"
+
+[inputs.memory]
+type = "string"
+default = "2g"
+pattern = "^[1-9][0-9]*[mMgG]$"
+prompt = "Memory limit"
+
+[inputs.runtime_uid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host user ID for server files"
+
+[inputs.runtime_gid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host group ID for server files"
+
+[[sources]]
+id = "core"
+type = "github-release"
+target = "server.jar"
+max_size = 268435456
+
+[sources.options]
+repository = "PowerNukkitX/PowerNukkitX"
+version = "latest"
+channel = "stable"
+asset = "powernukkitx.jar"
+
+[runtime]
+image = "eclipse-temurin:25-jre@sha256:f9e65324a37f28209ce7dd0e5149a7aa954520ed936fb87813cf6ded2400a112"
+command = [
+  "java",
+  "-Xms${input.memory}",
+  "-Xmx${input.memory}",
+  "-jar",
+  "server.jar",
+  "--skip-setup",
+  "--accept-license",
+  "--language",
+  "eng",
+  "--server-name",
+  "${input.server_name}",
+  "--port",
+  "19132",
+]
+memory = "${input.memory}"
+stop_signal = "SIGINT"
+stop_timeout = 30
+restart = "on-failure"
+restart_limit = 3
+run_as = "${input.runtime_uid}:${input.runtime_gid}"
+read_only_root = true
+
+[[runtime.mounts]]
+source = "."
+target = "/server"
+mode = "rw"
+
+[[runtime.mounts]]
+source = ".tmp"
+target = "/tmp"
+mode = "rw"
+
+[[runtime.ports]]
+name = "game"
+host = 19132
+container = 19132
+protocol = "udp"
+
+[[checks]]
+id = "core-present"
+phase = "post-build"
+kind = "file"
+path = "server.jar"
+
+[[checks]]
+id = "ready"
+phase = "readiness"
+kind = "log-regex"
+pattern = "Done .* For help, type"
+timeout = 240
+
+[ownership]
+preserve = [
+  "banned-ips.json",
+  "banned-players.json",
+  "ops.txt",
+  "pnx.yml",
+  "server.properties",
+  "white-list.txt",
+]
+data = [
+  ".tmp",
+  "libraries",
+  "logs",
+  "players",
+  "plugins",
+  "services",
+  "worlds",
+]
+
+[update]
+backup = [
+  "banned-ips.json",
+  "banned-players.json",
+  "ops.txt",
+  "players",
+  "plugins",
+  "pnx.yml",
+  "server.properties",
+  "services",
+  "white-list.txt",
+  "worlds",
+]
+retain_backups = 3
+rollback_on_failure = true

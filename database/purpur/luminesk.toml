@@ -1,0 +1,137 @@
+manifest_version = 1
+template = "template"
+
+[package]
+name = "purpur"
+version = "1.0.0"
+display_name = "Purpur"
+kind = "core"
+game = "minecraft"
+edition = "java"
+summary = "Configurable Purpur server for Minecraft Java Edition"
+keywords = ["purpur", "paper", "java", "plugins", "bukkit", "spigot"]
+license = "MIT"
+authors = ["PurpurMC"]
+platforms = ["linux/amd64", "linux/arm64"]
+
+[package.repository]
+url = "https://github.com/PurpurMC/Purpur"
+
+[inputs.server_name]
+type = "string"
+default = "Purpur Server"
+pattern = '''^[^\r\n=]{1,64}$'''
+prompt = "Server name"
+
+[inputs.eula]
+type = "boolean"
+required = true
+prompt = "Accept the Minecraft EULA"
+
+[inputs.memory]
+type = "string"
+default = "4g"
+pattern = "^[1-9][0-9]*[mMgG]$"
+prompt = "Memory limit"
+
+[inputs.runtime_uid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host user ID for server files"
+
+[inputs.runtime_gid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host group ID for server files"
+
+[[sources]]
+id = "core"
+type = "http"
+target = "server.jar"
+max_size = 536870912
+
+[sources.options]
+url = "https://api.purpurmc.org/v2/purpur/26.2/latest/download"
+version = "26.2-latest"
+
+[runtime]
+image = "eclipse-temurin:25-jre@sha256:f9e65324a37f28209ce7dd0e5149a7aa954520ed936fb87813cf6ded2400a112"
+command = ["java", "-Xms${input.memory}", "-Xmx${input.memory}", "-jar", "server.jar", "nogui"]
+memory = "${input.memory}"
+stop_signal = "SIGINT"
+stop_timeout = 30
+restart = "on-failure"
+restart_limit = 3
+run_as = "${input.runtime_uid}:${input.runtime_gid}"
+read_only_root = true
+
+[[runtime.mounts]]
+source = "."
+target = "/server"
+mode = "rw"
+
+[[runtime.mounts]]
+source = ".tmp"
+target = "/tmp"
+mode = "rw"
+
+[[runtime.ports]]
+name = "game"
+host = 25565
+container = 25565
+protocol = "tcp"
+
+[[checks]]
+id = "core-present"
+phase = "post-build"
+kind = "file"
+path = "server.jar"
+
+[[checks]]
+id = "ready"
+phase = "readiness"
+kind = "log-regex"
+pattern = "Done .* For help, type"
+timeout = 300
+
+[ownership]
+preserve = ["eula.txt", "server.properties"]
+data = [
+  ".tmp",
+  "banned-ips.json",
+  "banned-players.json",
+  "cache",
+  "config",
+  "libraries",
+  "logs",
+  "ops.json",
+  "plugins",
+  "purpur.yml",
+  "usercache.json",
+  "versions",
+  "whitelist.json",
+  "world",
+  "world_nether",
+  "world_the_end",
+]
+
+[update]
+backup = [
+  "banned-ips.json",
+  "banned-players.json",
+  "config",
+  "ops.json",
+  "plugins",
+  "purpur.yml",
+  "server.properties",
+  "whitelist.json",
+  "world",
+  "world_nether",
+  "world_the_end",
+]
+retain_backups = 3
+rollback_on_failure = true

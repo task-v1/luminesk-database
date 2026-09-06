@@ -1,0 +1,117 @@
+manifest_version = 1
+
+[package]
+name = "nukkit"
+version = "1.0.0"
+display_name = "Cloudburst Nukkit"
+kind = "core"
+game = "minecraft"
+edition = "bedrock"
+summary = "Cloudburst Nukkit server for Minecraft Bedrock Edition"
+keywords = ["cloudburst", "nukkit", "bedrock", "java", "plugins"]
+license = "GPL-3.0-only"
+authors = ["CloudburstMC"]
+platforms = ["linux/amd64", "linux/arm64"]
+
+[package.repository]
+url = "https://github.com/CloudburstMC/Nukkit"
+
+[inputs.memory]
+type = "string"
+default = "2g"
+pattern = "^[1-9][0-9]*[mMgG]$"
+prompt = "Memory limit"
+
+[inputs.runtime_uid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host user ID for server files"
+
+[inputs.runtime_gid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host group ID for server files"
+
+[[sources]]
+id = "core"
+type = "maven"
+target = "server.jar"
+max_size = 268435456
+
+[sources.options]
+repository = "https://repo.opencollab.dev/maven-snapshots"
+group = "cn.nukkit"
+artifact = "nukkit"
+version = "1.0-SNAPSHOT"
+extension = "jar"
+channel = "snapshot"
+
+[runtime]
+image = "eclipse-temurin:8-jre@sha256:e8950bfdf2ba05642262f62197910032da85fd2ad4a36c120a45138ca281189e"
+command = ["java", "-Xms${input.memory}", "-Xmx${input.memory}", "-jar", "server.jar", "--language", "eng"]
+memory = "${input.memory}"
+stop_signal = "SIGINT"
+stop_timeout = 30
+restart = "on-failure"
+restart_limit = 3
+run_as = "${input.runtime_uid}:${input.runtime_gid}"
+read_only_root = true
+
+[[runtime.mounts]]
+source = "."
+target = "/server"
+mode = "rw"
+
+[[runtime.mounts]]
+source = ".tmp"
+target = "/tmp"
+mode = "rw"
+
+[[runtime.ports]]
+name = "game"
+host = 19132
+container = 19132
+protocol = "udp"
+
+[[checks]]
+id = "core-present"
+phase = "post-build"
+kind = "file"
+path = "server.jar"
+
+[[checks]]
+id = "ready"
+phase = "readiness"
+kind = "log-regex"
+pattern = "Done .* For help, type"
+timeout = 180
+
+[ownership]
+preserve = [
+  "banned-ips.json",
+  "banned-players.json",
+  "nukkit.yml",
+  "ops.txt",
+  "server.properties",
+  "white-list.txt",
+]
+data = [".tmp", "logs", "players", "plugins", "worlds"]
+
+[update]
+backup = [
+  "banned-ips.json",
+  "banned-players.json",
+  "nukkit.yml",
+  "ops.txt",
+  "players",
+  "plugins",
+  "server.properties",
+  "white-list.txt",
+  "worlds",
+]
+retain_backups = 3
+rollback_on_failure = true
