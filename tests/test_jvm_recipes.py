@@ -6,6 +6,7 @@ import pytest
 from luminesk_cli.domain.manifest import (
     GitHubReleaseOptions,
     HttpOptions,
+    JenkinsOptions,
     Manifest,
     MavenOptions,
     load_manifest,
@@ -65,7 +66,7 @@ def test_allay_uses_the_shaded_stable_release(
     assert manifest.checks[-1].pattern == "Network interface started at"
 
 
-def test_nukkit_variants_use_their_official_maven_repositories(
+def test_nukkit_variants_use_their_official_build_repositories(
     manifests: dict[str, Manifest],
 ) -> None:
     nukkit = manifests["nukkit"].sources[0]
@@ -74,9 +75,10 @@ def test_nukkit_variants_use_their_official_maven_repositories(
     assert isinstance(nukkit.options, MavenOptions)
     assert nukkit.options.repository == "https://repo.opencollab.dev/maven-snapshots"
     assert nukkit.options.version == "1.0-SNAPSHOT"
-    assert isinstance(mot.options, MavenOptions)
-    assert mot.options.repository == "https://repo.maven.apache.org/maven2"
-    assert mot.options.version == "1.26.40-R1"
+    assert isinstance(mot.options, JenkinsOptions)
+    assert mot.options.base_url == "https://motci.cn"
+    assert mot.options.job == "Nukkit-MOT/job/master"
+    assert mot.options.artifact == "Nukkit-MOT-SNAPSHOT.jar"
 
 
 def test_powernukkitx_skips_only_after_explicit_license_acceptance(

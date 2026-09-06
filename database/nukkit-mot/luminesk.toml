@@ -38,17 +38,15 @@ prompt = "Host group ID for server files"
 
 [[sources]]
 id = "core"
-type = "maven"
+type = "jenkins"
 target = "server.jar"
 max_size = 268435456
 
 [sources.options]
-repository = "https://repo.maven.apache.org/maven2"
-group = "com.nukkit-mot"
-artifact = "nukkit-mot"
-version = "1.26.40-R1"
-extension = "jar"
-channel = "prerelease"
+base_url = "https://motci.cn"
+job = "Nukkit-MOT/job/master"
+artifact = "Nukkit-MOT-SNAPSHOT.jar"
+build = "lastSuccessfulBuild"
 
 [runtime]
 image = "eclipse-temurin:17-jre@sha256:13cc28a6cc72a38ce1f00c906be3580c1a3e604b8984d694f369a96742abc93b"
