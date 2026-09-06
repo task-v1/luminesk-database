@@ -1,0 +1,121 @@
+manifest_version = 1
+template = "template"
+
+[package]
+name = "endstone"
+version = "1.0.0"
+display_name = "Endstone"
+kind = "core"
+game = "minecraft"
+edition = "bedrock"
+summary = "Plugin-enabled vanilla-compatible Endstone Bedrock server"
+keywords = ["endstone", "bedrock", "python", "plugins", "vanilla"]
+license = "Apache-2.0"
+authors = ["EndstoneMC"]
+platforms = ["linux/amd64"]
+
+[package.repository]
+url = "https://github.com/EndstoneMC/endstone"
+
+[inputs.server_name]
+type = "string"
+default = "Endstone Server"
+pattern = '''^[^\r\n=]{1,64}$'''
+prompt = "Server name"
+
+[inputs.eula]
+type = "boolean"
+required = true
+prompt = "Accept the Minecraft EULA"
+
+[inputs.memory]
+type = "string"
+default = "4g"
+pattern = "^[1-9][0-9]*[mMgG]$"
+prompt = "Memory limit"
+
+[runtime]
+image = "endstone/endstone:0.11.10@sha256:299f3b987677d91d7e1d99f5273f725eadd2135428922aa587e443681d1ad277"
+command = ["endstone", "--server-folder", "/server", "--yes"]
+memory = "${input.memory}"
+stop_signal = "SIGINT"
+stop_timeout = 30
+restart = "on-failure"
+restart_limit = 3
+read_only_root = true
+
+[[runtime.mounts]]
+source = "."
+target = "/server"
+mode = "rw"
+
+[[runtime.mounts]]
+source = ".tmp"
+target = "/tmp"
+mode = "rw"
+
+[[runtime.mounts]]
+source = ".cache"
+target = "/home/endstone/.cache"
+mode = "rw"
+
+[[runtime.ports]]
+name = "game"
+host = 19132
+container = 19132
+protocol = "udp"
+
+[[runtime.ports]]
+name = "game-ipv6"
+host = 19133
+container = 19133
+protocol = "udp"
+
+[[checks]]
+id = "server-properties-present"
+phase = "post-build"
+kind = "file"
+path = "server.properties"
+
+[[checks]]
+id = "ready"
+phase = "readiness"
+kind = "log-regex"
+pattern = "Server started\\."
+timeout = 300
+
+[ownership]
+preserve = [
+  "allowlist.json",
+  "permissions.json",
+  "server.properties",
+  "valid_known_packs.json",
+]
+data = [
+  ".cache",
+  ".tmp",
+  "behavior_packs",
+  "config",
+  "crashdumps",
+  "development_behavior_packs",
+  "development_resource_packs",
+  "development_skin_packs",
+  "logs",
+  "plugins",
+  "resource_packs",
+  "worlds",
+]
+
+[update]
+backup = [
+  "allowlist.json",
+  "behavior_packs",
+  "config",
+  "permissions.json",
+  "plugins",
+  "resource_packs",
+  "server.properties",
+  "worlds",
+]
+retain_backups = 3
+rollback_on_failure = true
