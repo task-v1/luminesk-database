@@ -1,0 +1,125 @@
+manifest_version = 1
+
+[package]
+name = "lunacy"
+version = "1.0.0"
+display_name = "Lunacy"
+kind = "core"
+game = "minecraft"
+edition = "bedrock"
+summary = "Lunacy PocketMine-MP fork for Minecraft Bedrock Edition"
+keywords = ["lunacy", "pocketmine", "bedrock", "php", "plugins"]
+license = "GPL-2.0-only"
+authors = ["karepanov35"]
+platforms = ["linux/amd64"]
+
+[package.repository]
+url = "https://github.com/karepanov35/Lunacy"
+
+[inputs.memory]
+type = "string"
+default = "2g"
+pattern = "^[1-9][0-9]*[mMgG]$"
+prompt = "Memory limit"
+
+[inputs.runtime_uid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host user ID for server files"
+
+[inputs.runtime_gid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host group ID for server files"
+
+[[sources]]
+id = "core"
+type = "github-release"
+target = "PocketMine-MP.phar"
+max_size = 134217728
+
+[sources.options]
+repository = "karepanov35/Lunacy"
+asset = "PocketMine-MP.phar"
+version = "latest"
+channel = "stable"
+
+[runtime]
+image = "pmmp/pocketmine-mp:5.44.3@sha256:58bc978b4ef951025d6fb03f5d95af118bb327b9fcb0438eb172c0bb2612ebb7"
+command = ["/usr/bin/php", "PocketMine-MP.phar", "--no-wizard", "--enable-ansi"]
+memory = "${input.memory}"
+stop_signal = "SIGINT"
+stop_timeout = 30
+restart = "on-failure"
+restart_limit = 3
+run_as = "${input.runtime_uid}:${input.runtime_gid}"
+read_only_root = true
+
+[[runtime.mounts]]
+source = "."
+target = "/server"
+mode = "rw"
+
+[[runtime.mounts]]
+source = ".tmp"
+target = "/tmp"
+mode = "rw"
+
+[[runtime.ports]]
+name = "game"
+host = 19132
+container = 19132
+protocol = "udp"
+
+[[checks]]
+id = "core-present"
+phase = "post-build"
+kind = "file"
+path = "PocketMine-MP.phar"
+
+[[checks]]
+id = "ready"
+phase = "readiness"
+kind = "log-regex"
+pattern = "Done .* For help, type"
+timeout = 240
+
+[ownership]
+preserve = [
+  "banned-ips.txt",
+  "banned-players.txt",
+  "ops.txt",
+  "pocketmine.yml",
+  "server.properties",
+  "white-list.txt",
+]
+data = [
+  ".tmp",
+  "crashdumps",
+  "players",
+  "plugin_data",
+  "plugins",
+  "resource_packs",
+  "worlds",
+]
+
+[update]
+backup = [
+  "banned-ips.txt",
+  "banned-players.txt",
+  "ops.txt",
+  "players",
+  "plugin_data",
+  "plugins",
+  "pocketmine.yml",
+  "resource_packs",
+  "server.properties",
+  "white-list.txt",
+  "worlds",
+]
+retain_backups = 3
+rollback_on_failure = true

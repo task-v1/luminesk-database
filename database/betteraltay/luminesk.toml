@@ -1,0 +1,144 @@
+manifest_version = 1
+
+[package]
+name = "betteraltay"
+version = "1.0.0"
+display_name = "BetterAltay"
+kind = "core"
+game = "minecraft"
+edition = "bedrock"
+summary = "Feature-rich BetterAltay server for Minecraft Bedrock Edition"
+keywords = ["betteraltay", "pocketmine", "bedrock", "php", "plugins"]
+license = "LGPL-3.0-only"
+authors = ["BetterAltayBedrock"]
+platforms = ["linux/amd64"]
+
+[package.repository]
+url = "https://github.com/BetterAltayBedrock/BetterAltay"
+
+[inputs.memory]
+type = "string"
+default = "2g"
+pattern = "^[1-9][0-9]*[mMgG]$"
+prompt = "Memory limit"
+
+[inputs.runtime_uid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host user ID for server files"
+
+[inputs.runtime_gid]
+type = "integer"
+default = 1000
+min = 1
+max = 2147483647
+prompt = "Host group ID for server files"
+
+[[sources]]
+id = "core"
+type = "github-release"
+target = "BetterAltay.phar"
+max_size = 134217728
+
+[sources.options]
+repository = "BetterAltayBedrock/BetterAltay"
+asset = "BetterAltay.phar"
+version = "latest"
+channel = "stable"
+
+[[sources]]
+id = "php"
+type = "github-release"
+target = "php-runtime"
+extract = true
+max_size = 67108864
+
+[sources.options]
+repository = "Benedikt05/PHP-Binaries"
+asset = "bin.zip"
+version = "linux"
+channel = "stable"
+
+[runtime]
+image = "ubuntu:22.04@sha256:2edbbc5dc405e9612ba3584ce95480277e3eb374407b5505fe26f17df77c7dbc"
+command = ["php-runtime/bin/php7/bin/php", "BetterAltay.phar", "--no-wizard"]
+memory = "${input.memory}"
+stop_signal = "SIGINT"
+stop_timeout = 30
+restart = "on-failure"
+restart_limit = 3
+run_as = "${input.runtime_uid}:${input.runtime_gid}"
+read_only_root = true
+
+[[runtime.mounts]]
+source = "."
+target = "/server"
+mode = "rw"
+
+[[runtime.mounts]]
+source = ".tmp"
+target = "/tmp"
+mode = "rw"
+
+[[runtime.ports]]
+name = "game"
+host = 19132
+container = 19132
+protocol = "udp"
+
+[[checks]]
+id = "core-present"
+phase = "post-build"
+kind = "file"
+path = "BetterAltay.phar"
+
+[[checks]]
+id = "php-present"
+phase = "post-build"
+kind = "file"
+path = "php-runtime/bin/php7/bin/php"
+
+[[checks]]
+id = "ready"
+phase = "readiness"
+kind = "log-regex"
+pattern = "Done .* For help, type"
+timeout = 240
+
+[ownership]
+preserve = [
+  "banned-ips.txt",
+  "banned-players.txt",
+  "ops.txt",
+  "pocketmine.yml",
+  "server.properties",
+  "white-list.txt",
+]
+data = [
+  ".tmp",
+  "crashdumps",
+  "logs",
+  "players",
+  "plugin_data",
+  "plugins",
+  "worlds",
+]
+executable = ["php-runtime/bin/php7/bin/php"]
+
+[update]
+backup = [
+  "banned-ips.txt",
+  "banned-players.txt",
+  "ops.txt",
+  "players",
+  "plugin_data",
+  "plugins",
+  "pocketmine.yml",
+  "server.properties",
+  "white-list.txt",
+  "worlds",
+]
+retain_backups = 3
+rollback_on_failure = true
