@@ -34,12 +34,6 @@
       "additionalProperties": {"type": "object"}
     }
   },
-  "anyOf": [
-    {"required": ["template"]},
-    {"required": ["build"]},
-    {"properties": {"sources": {"minItems": 1}}, "required": ["sources"]},
-    {"properties": {"files": {"minItems": 1}}, "required": ["files"]}
-  ],
   "$defs": {
     "nonEmptyString": {
       "type": "string",

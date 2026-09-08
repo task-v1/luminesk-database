@@ -89,4 +89,4 @@ def test_workflows_pin_external_actions_and_the_same_cli_revision(
                 f"{path.name} has a mutable action: {action}"
             )
 
-    assert revisions == {"0164220fe4d32521527de1d5a20905de8aaa63ca"}
+    assert revisions == {"4ad7d30c7eb972a6745fe0c806ca979d530c30bd"}

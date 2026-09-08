@@ -1,9 +1,8 @@
 manifest_version = 1
-template = "template"
 
 [package]
 name = "endstone"
-version = "1.0.0"
+version = "1.0.1"
 display_name = "Endstone"
 kind = "core"
 game = "minecraft"
@@ -16,12 +15,6 @@ platforms = ["linux/amd64"]
 
 [package.repository]
 url = "https://github.com/EndstoneMC/endstone"
-
-[inputs.server_name]
-type = "string"
-default = "Endstone Server"
-pattern = '''^[^\r\n=]{1,64}$'''
-prompt = "Server name"
 
 [inputs.eula]
 type = "boolean"
@@ -70,12 +63,6 @@ name = "game-ipv6"
 host = 19133
 container = 19133
 protocol = "udp"
-
-[[checks]]
-id = "server-properties-present"
-phase = "post-build"
-kind = "file"
-path = "server.properties"
 
 [[checks]]
 id = "ready"

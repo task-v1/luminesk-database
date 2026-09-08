@@ -108,7 +108,11 @@ def test_purpur_uses_the_official_download_api_and_eula_template(
         "https://api.purpurmc.org/v2/purpur/26.2/latest/download"
     )
     assert inputs["eula"].required is True
+    assert "server_name" not in inputs
     assert manifest.runtime.ports[0].protocol == "tcp"
     assert (repository_root / "database/purpur/template/eula.txt.tmpl").read_text(
         encoding="utf-8"
     ) == "eula=${input.eula}\n"
+    assert not (
+        repository_root / "database/purpur/template/server.properties.tmpl"
+    ).exists()

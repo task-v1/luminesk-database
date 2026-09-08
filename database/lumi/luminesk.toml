@@ -1,9 +1,8 @@
 manifest_version = 1
-template = "template"
 
 [package]
 name = "lumi"
-version = "1.0.2"
+version = "1.0.3"
 display_name = "Lumi"
 kind = "core"
 game = "minecraft"
@@ -16,12 +15,6 @@ platforms = ["linux/amd64", "linux/arm64"]
 
 [package.repository]
 url = "https://github.com/KoshakMineDEV/Lumi"
-
-[inputs.server_name]
-type = "string"
-default = "Lumi Server"
-pattern = '''^[^\r\n"\\]{1,64}$'''
-prompt = "Server name"
 
 [inputs.memory]
 type = "string"

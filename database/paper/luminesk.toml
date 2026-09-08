@@ -3,7 +3,7 @@ template = "template"
 
 [package]
 name = "paper"
-version = "1.0.1"
+version = "1.0.2"
 display_name = "PaperMC"
 kind = "core"
 game = "minecraft"
@@ -16,12 +16,6 @@ platforms = ["linux/amd64", "linux/arm64"]
 
 [package.repository]
 url = "https://github.com/PaperMC/Paper"
-
-[inputs.server_name]
-type = "string"
-default = "PaperMC Server"
-pattern = '''^[^\r\n=]{1,64}$'''
-prompt = "Server name"
 
 [inputs.eula]
 type = "boolean"

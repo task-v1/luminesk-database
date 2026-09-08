@@ -1,9 +1,8 @@
 manifest_version = 1
-template = "template"
 
 [package]
 name = "dragonfly"
-version = "1.0.0"
+version = "1.0.1"
 display_name = "Dragonfly"
 kind = "core"
 game = "minecraft"
@@ -16,12 +15,6 @@ platforms = ["linux/amd64", "linux/arm64"]
 
 [package.repository]
 url = "https://github.com/df-mc/dragonfly"
-
-[inputs.server_name]
-type = "string"
-default = "Dragonfly Server"
-pattern = '''^[^\r\n"\\]{1,64}$'''
-prompt = "Server name"
 
 [inputs.memory]
 type = "string"

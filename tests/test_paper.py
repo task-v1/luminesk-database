@@ -7,6 +7,7 @@ from luminesk_cli.domain.manifest import PaperOptions, load_manifest
 
 def test_paper_recipe_matches_runtime_contract(repository_root: Path) -> None:
     manifest = load_manifest(repository_root / "database" / "paper" / "luminesk.toml")
+    inputs = {item.name: item for item in manifest.inputs}
 
     assert manifest.package.name == "paper"
     assert manifest.package.display_name == "PaperMC"
@@ -24,3 +25,11 @@ def test_paper_recipe_matches_runtime_contract(repository_root: Path) -> None:
     assert manifest.runtime.ports[0].protocol == "tcp"
     assert manifest.runtime.ports[0].container == 25565
     assert manifest.ownership.preserve == ("eula.txt", "server.properties")
+    assert inputs["eula"].required is True
+    assert "server_name" not in inputs
+    assert (repository_root / "database/paper/template/eula.txt.tmpl").read_text(
+        encoding="utf-8"
+    ) == "eula=${input.eula}\n"
+    assert not (
+        repository_root / "database/paper/template/server.properties.tmpl"
+    ).exists()

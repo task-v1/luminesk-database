@@ -41,7 +41,7 @@ def test_index_is_deterministic_and_describes_lumi_by_name(
     assert entry.edition == "bedrock"
     assert entry.license == "LGPL-3.0-only"
     assert entry.source_types == ("maven",)
-    assert entry.template_digest is not None
+    assert entry.template_digest is None
 
 
 def test_index_supports_multiple_cores_with_optional_templates(
@@ -51,27 +51,27 @@ def test_index_supports_multiple_cores_with_optional_templates(
     root = tmp_path / "repository"
     database = root / "database"
     database.mkdir(parents=True)
-    shutil.copytree(repository_root / "database" / "lumi", database / "lumi")
+    shutil.copytree(repository_root / "database" / "paper", database / "paper")
     shutil.copytree(repository_root / "schemas", root / "schemas")
 
     alpha = database / "alpha"
     alpha.mkdir()
-    manifest = (repository_root / "database" / "lumi" / "luminesk.toml").read_text(
+    manifest = (repository_root / "database" / "paper" / "luminesk.toml").read_text(
         encoding="utf-8"
     )
     manifest = manifest.replace('template = "template"\n', "", 1)
-    manifest = manifest.replace('name = "lumi"', 'name = "alpha"', 1)
-    manifest = manifest.replace('display_name = "Lumi"', 'display_name = "Alpha"', 1)
+    manifest = manifest.replace('name = "paper"', 'name = "alpha"', 1)
+    manifest = manifest.replace('display_name = "PaperMC"', 'display_name = "Alpha"', 1)
     (alpha / "luminesk.toml").write_text(manifest, encoding="utf-8")
 
     assert validate_repository(root) == 2
     snapshot = parse_catalog_index(build_index(root, REVISION))
     entries = {entry.name: entry for entry in snapshot.entries}
 
-    assert tuple(entries) == ("alpha", "lumi")
+    assert tuple(entries) == ("alpha", "paper")
     assert entries["alpha"].path == "database/alpha"
     assert entries["alpha"].template_digest is None
-    assert entries["lumi"].template_digest is not None
+    assert entries["paper"].template_digest is not None
 
 
 def test_index_writer_emits_matching_checksum(

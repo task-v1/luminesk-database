@@ -32,8 +32,8 @@ database may contain.
 1. Create `database/<name>/luminesk.toml`. Use a lowercase ASCII identifier for
    both the directory and `[package].name`.
 2. Set a valid semantic `[package].version`, a non-empty summary, the game,
-   edition, supported platforms, runtime, and at least one source, file, build,
-   or template input required by the manifest contract.
+   edition, supported platforms, and runtime. Add sources, files, a build, or a
+   template only when the runtime image does not already contain the full core.
 3. Use only a production source type listed in
    [`schemas/supported-source-types-v1.json`](schemas/supported-source-types-v1.json).
    Official recipes cannot use `local-file` sources.
@@ -51,7 +51,7 @@ README-only change must increase `[package].version`. New recipes do not need a
 version relative to a previous catalog entry, but their initial version must be
 valid SemVer.
 
-The [Lumi recipe](database/lumi/luminesk.toml) is a complete example with an
+The [Paper recipe](database/paper/luminesk.toml) is a complete example with an
 optional template tree.
 
 ## Validation policy
@@ -81,7 +81,7 @@ in both workflow files; use that same revision when reproducing CI exactly.
 ```bash
 git -C ../luminesk-cli fetch origin 2.0
 git -C ../luminesk-cli worktree add --detach ../luminesk-cli-ci \
-  1bc51881f1c24a0c7165d721e1fa38b7b44c03f0
+  4ad7d30c7eb972a6745fe0c806ca979d530c30bd
 
 uv sync --project ../luminesk-cli-ci --locked --extra dev --python 3.13
 

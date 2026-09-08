@@ -32,6 +32,7 @@ def _gzip_response(content: bytes) -> httpx.Response:
 
 def test_lumi_recipe_matches_runtime_contract(repository_root: Path) -> None:
     manifest = load_manifest(repository_root / "database" / "lumi" / "luminesk.toml")
+    inputs = {item.name for item in manifest.inputs}
 
     assert manifest.package.name == "lumi"
     assert manifest.package.display_name == "Lumi"
@@ -49,6 +50,9 @@ def test_lumi_recipe_matches_runtime_contract(repository_root: Path) -> None:
     assert manifest.runtime.run_as == "${input.runtime_uid}:${input.runtime_gid}"
     assert manifest.runtime.ports[0].protocol == "udp"
     assert manifest.runtime.ports[0].container == 19132
+    assert manifest.template is None
+    assert "server_name" not in inputs
+    assert manifest.ownership.preserve == ("settings.yml",)
 
 
 def test_repository_and_cli_search_info_work_together(
@@ -66,6 +70,13 @@ def test_repository_and_cli_search_info_work_together(
         "luminesk_cli.cli.commands.catalog.catalog_store",
         lambda: store,
     )
+    monkeypatch.setattr(
+        CatalogClient,
+        "fetch_entry_manifest",
+        lambda _client, _snapshot, _entry: load_manifest(
+            repository_root / "database" / "lumi" / "luminesk.toml"
+        ),
+    )
 
     assert main(["search", "lumi", "--edition", "bedrock", "--json"]) == 0
     search = json.loads(capsys.readouterr().out)
@@ -74,11 +85,11 @@ def test_repository_and_cli_search_info_work_together(
     assert main(["info", "lumi", "--json"]) == 0
     info = json.loads(capsys.readouterr().out)
     assert info["recipe"]["displayName"] == "Lumi"
-    assert info["recipe"]["recipeVersion"] == "1.0.2"
+    assert info["recipe"]["recipeVersion"] == "1.0.3"
     assert info["recipe"]["license"] == "LGPL-3.0-only"
 
 
-def test_catalog_client_acquires_exact_lumi_recipe(
+def test_catalog_client_acquires_exact_lumi_recipe_without_template(
     repository_root: Path,
     tmp_path: Path,
 ) -> None:
@@ -86,31 +97,13 @@ def test_catalog_client_acquires_exact_lumi_recipe(
     snapshot = parse_catalog_index(content)
     entry = next(entry for entry in snapshot.entries if entry.name == "lumi")
     manifest = (repository_root / "database" / "lumi" / "luminesk.toml").read_bytes()
-    template = (
-        repository_root / "database" / "lumi" / "template" / "settings.yml.tmpl"
-    ).read_bytes()
+    assert entry.template_digest is None
 
     def handler(request: httpx.Request) -> httpx.Response:
         path = unquote(request.url.path)
 
         if path.endswith(f"/{REVISION}/database/lumi/luminesk.toml"):
             return _gzip_response(manifest)
-
-        if path.endswith("/contents/database/lumi/template"):
-            return httpx.Response(
-                200,
-                json=[
-                    {
-                        "type": "file",
-                        "path": "database/lumi/template/settings.yml.tmpl",
-                        "size": len(template),
-                        "download_url": "https://download.example/settings.yml.tmpl",
-                    }
-                ],
-            )
-
-        if request.url.host == "download.example":
-            return _gzip_response(template)
 
         raise AssertionError(f"unexpected catalog request: {request.url}")
 
@@ -125,4 +118,4 @@ def test_catalog_client_acquires_exact_lumi_recipe(
     assert acquired.manifest.package.name == "lumi"
     assert acquired.origin.kind == "database"
     assert acquired.origin.revision == REVISION
-    assert (acquired.root / "template" / "settings.yml.tmpl").read_bytes() == template
+    assert not (acquired.root / "template").exists()
